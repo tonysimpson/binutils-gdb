@@ -1,3 +1,11 @@
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
+	* gdb.trace/ftrace.exp: Select $r2 as test register for s390.
+	* gdb.trace/mi-trace-frame-collected.exp: Expect 2 registers on s390.
+	* gdb.trace/trace-common.h (x86_trace_dummy): Add s390 fast tracepoint
+	placeholder.
+	* lib/trace-support.exp: Add s390 registers.
+
 2016-02-04  Yao Qi  <yao.qi@linaro.org>
 
 	* gdb.base/foll-exec-mode.c: Include limits.h.
@@ -83,11 +91,6 @@
 	* gdb.threads/process-dies-while-handling-bp.exp
 	(foreach_with_prefix): Likewise.
 	* lib/gdb.exp (foreach_with_prefix): New procedure.
-
-2016-01-25  Marcin Kościelnicki  <koriakin@0x04.net>
-
-	* gdb.trace/backtrace.exp: Bump stack collection fudge factor.
-	* gdb.trace/entry-values.exp: Bump stack collection fudge factor.
 
 2016-01-23  Marcin Kościelnicki  <koriakin@0x04.net>
 

@@ -1,5 +1,10 @@
 2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* linux-s390-low.c (s390_supports_tracepoints): New function.
+	(struct linux_target_ops): Fill supports_tracepoints hook.
+
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* linux-s390-low.c (s390_supports_z_point_type): New function.
 	(struct linux_target_ops): Wire s390_supports_z_point_type in.
 

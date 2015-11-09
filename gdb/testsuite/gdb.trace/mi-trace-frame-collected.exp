@@ -93,9 +93,17 @@ proc test_trace_frame_collected { data_source } {
 
 	# Test MI command '-trace-frame-collected' dumps only
 	# collected registers.
-	mi_gdb_test "-trace-frame-collected" \
-	    "\\^done,explicit-variables=\\\[\{name=\"gdb_char_test\",value=\".*\"\}\\\],computed-expressions=\\\[\\\],registers=\\\[\{number=\"$decimal\",value=\"$hex\"\}\\\],tvars=\\\[\\\],memory=\\\[\{address=\"$hex\",length=\"1\"\}\\\]"\
-	    "-trace-frame-collected (register)"
+	if { [istarget "s390*-*-*"] } {
+	    # Only PC is collected, but on s390 PC is a pseudo-register -
+	    # collecting it also collects the underlying PSWA register.
+	    mi_gdb_test "-trace-frame-collected" \
+		"\\^done,explicit-variables=\\\[\{name=\"gdb_char_test\",value=\".*\"\}\\\],computed-expressions=\\\[\\\],registers=\\\[\{number=\"$decimal\",value=\"$hex\"\},\{number=\"$decimal\",value=\"$hex\"\}\\\],tvars=\\\[\\\],memory=\\\[\{address=\"$hex\",length=\"1\"\}\\\]"\
+		"-trace-frame-collected (register)"
+	} else {
+	    mi_gdb_test "-trace-frame-collected" \
+		"\\^done,explicit-variables=\\\[\{name=\"gdb_char_test\",value=\".*\"\}\\\],computed-expressions=\\\[\\\],registers=\\\[\{number=\"$decimal\",value=\"$hex\"\}\\\],tvars=\\\[\\\],memory=\\\[\{address=\"$hex\",length=\"1\"\}\\\]"\
+		"-trace-frame-collected (register)"
+	}
 
 	mi_gdb_test "-trace-find frame-number 1" \
 	    ".*\\^done,found=\"1\",tracepoint=\"${decimal}\",traceframe=\"1\",frame=\{.*" \
