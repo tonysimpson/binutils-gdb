@@ -1,5 +1,12 @@
 2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* s390-linux-tdep.c (s390_ax_pseudo_register_collect): New function.
+	(s390_ax_pseudo_register_push_stack): New function.
+	(s390_gdbarch_init): Fill ax_pseudo_register_collect and
+	ax_pseudo_register_push_stack hooks.
+
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* s390-linux-tdep.c (s390_supply_pseudo_pc): New function.
 	(s390_gdbarch_init): Fill supply_pseudo_pc hook.
 
