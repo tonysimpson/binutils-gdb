@@ -510,6 +510,30 @@ linux-aarch64-ipa.o: linux-aarch64-ipa.c
 aarch64-ipa.o: aarch64.c
 	$(IPAGENT_COMPILE) $<
 	$(POSTCOMPILE)
+linux-s390-ipa.o: linux-s390-ipa.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390-linux32-ipa.o: s390-linux32.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390-linux64-ipa.o: s390-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390-vx-linux64-ipa.o: s390-vx-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390-tevx-linux64-ipa.o: s390-tevx-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390x-linux64-ipa.o: s390x-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390x-vx-linux64-ipa.o: s390x-vx-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
+s390x-tevx-linux64-ipa.o: s390x-tevx-linux64.c
+	$(IPAGENT_COMPILE) $<
+	$(POSTCOMPILE)
 tdesc-ipa.o: tdesc.c
 	$(IPAGENT_COMPILE) $<
 	$(POSTCOMPILE)

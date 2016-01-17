@@ -1,5 +1,32 @@
 2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* Makefile.in: Add s390 IPA files.
+	* configure.srv: Build IPA for s390.
+	* linux-s390-ipa.c: New file.
+	* linux-s390-low.c: New include - inttypes.h.
+	(have_hwcap_s390_vx): New static variable.
+	(s390_arch_setup): Fill have_hwcap_s390_vx.
+	(s390_get_thread_area): New function.
+	(s390_ft_entry_gpr_esa): New const.
+	(s390_ft_entry_gpr_zarch): New const.
+	(s390_ft_entry_misc): New const.
+	(s390_ft_entry_fr): New const.
+	(s390_ft_entry_vr): New const.
+	(s390_ft_main_31): New const.
+	(s390_ft_main_64): New const.
+	(s390_ft_exit_fr): New const.
+	(s390_ft_exit_vr): New const.
+	(s390_ft_exit_misc): New const.
+	(s390_ft_exit_gpr_esa): New const.
+	(s390_ft_exit_gpr_zarch): New const.
+	(append_insns): New function.
+	(s390_relocate_instruction): New function.
+	(s390_install_fast_tracepoint_jump_pad): New function.
+	(s390_get_min_fast_tracepoint_insn_len): New function.
+	(struct linux_target_ops): Wire in the above functions.
+
+2016-01-24  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* linux-s390-low.c (s390_supports_tracepoints): New function.
 	(struct linux_target_ops): Fill supports_tracepoints hook.
 
