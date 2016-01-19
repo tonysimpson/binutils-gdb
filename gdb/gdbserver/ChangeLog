@@ -1,5 +1,10 @@
 2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* linux-s390-low.c (s390_supports_z_point_type): New function.
+	(struct linux_target_ops): Wire s390_supports_z_point_type in.
+
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* tracepoint.c (struct tracepoint_action_ops): Removed.
 	(struct tracepoint_action): Removed ops field.
 	(struct collect_registers_action): Removed.
