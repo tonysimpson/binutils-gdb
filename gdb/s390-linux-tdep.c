@@ -167,6 +167,28 @@ s390_write_pc (struct regcache *regcache, CORE_ADDR pc)
     regcache_cooked_write_unsigned (regcache, S390_SYSTEM_CALL_REGNUM, 0);
 }
 
+/* The "supply_pseudo_pc" gdbarch method.  For s390, we have to supply
+   the PSWA register.  For 64-bit inferior, PC maps straight to PSWA.
+   For 31-bit, we additionally set the high bit to 1, since we have
+   to supply the whole register, and it's very unlikely the program
+   is in 24-bit addressing mode.  */
+
+static void
+s390_supply_pseudo_pc (struct regcache *regcache, CORE_ADDR pc)
+{
+  struct gdbarch *gdbarch = get_regcache_arch (regcache);
+  struct gdbarch_tdep *tdep = gdbarch_tdep (gdbarch);
+  int sz = register_size (gdbarch, S390_PSWA_REGNUM);
+  gdb_byte *reg = (gdb_byte *) alloca (sz);
+
+  /* 31-bit PSWA needs high bit set.  */
+  if (tdep->abi == ABI_LINUX_S390)
+    pc |= 0x80000000;
+
+  store_unsigned_integer (reg, sz, gdbarch_byte_order (gdbarch), pc);
+  regcache_raw_supply (regcache, S390_PSWA_REGNUM, reg);
+}
+
 
 /* DWARF Register Mapping.  */
 
@@ -7857,6 +7879,7 @@ s390_gdbarch_init (struct gdbarch_info info, struct gdbarch_list *arches)
 					    s390_iterate_over_regset_sections);
   set_gdbarch_cannot_store_register (gdbarch, s390_cannot_store_register);
   set_gdbarch_write_pc (gdbarch, s390_write_pc);
+  set_gdbarch_supply_pseudo_pc (gdbarch, s390_supply_pseudo_pc);
   set_gdbarch_pseudo_register_read (gdbarch, s390_pseudo_register_read);
   set_gdbarch_pseudo_register_write (gdbarch, s390_pseudo_register_write);
   set_tdesc_pseudo_register_name (gdbarch, s390_pseudo_register_name);

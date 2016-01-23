@@ -1,5 +1,10 @@
 2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* s390-linux-tdep.c (s390_supply_pseudo_pc): New function.
+	(s390_gdbarch_init): Fill supply_pseudo_pc hook.
+
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* gdbarch.c: Regenerate.
 	* gdbarch.h: Regenerate.
 	* gdbarch.sh: Add supply_pseudo_pc hook.
