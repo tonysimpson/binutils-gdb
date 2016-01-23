@@ -464,26 +464,10 @@ static int write_inferior_data_ptr (CORE_ADDR where, CORE_ADDR ptr);
 
 /* Operations on various types of tracepoint actions.  */
 
-struct tracepoint_action;
-
-struct tracepoint_action_ops
-{
-  /* Download tracepoint action ACTION to IPA.  Return the address of action
-     in IPA/inferior.  */
-  CORE_ADDR (*download) (const struct tracepoint_action *action);
-
-  /* Send ACTION to agent via command buffer started from BUFFER.  Return
-     updated head of command buffer.  */
-  char* (*send) (char *buffer, const struct tracepoint_action *action);
-};
-
 /* Base action.  Concrete actions inherit this.  */
 
 struct tracepoint_action
 {
-#ifndef IN_PROCESS_AGENT
-  const struct tracepoint_action_ops *ops;
-#endif
   char type;
 };
 
@@ -497,13 +481,6 @@ struct collect_memory_action
   int32_t basereg;
 };
 
-/* An 'R' (collect registers) action.  */
-
-struct collect_registers_action
-{
-  struct tracepoint_action base;
-};
-
 /* An 'X' (evaluate expression) action.  */
 
 struct eval_expr_action
@@ -513,88 +490,8 @@ struct eval_expr_action
   struct agent_expr *expr;
 };
 
-/* An 'L' (collect static trace data) action.  */
-struct collect_static_trace_data_action
-{
-  struct tracepoint_action base;
-};
-
 #ifndef IN_PROCESS_AGENT
-static CORE_ADDR
-m_tracepoint_action_download (const struct tracepoint_action *action)
-{
-  int size_in_ipa = (sizeof (struct collect_memory_action)
-		     - offsetof (struct tracepoint_action, type));
-  CORE_ADDR ipa_action = target_malloc (size_in_ipa);
-
-  write_inferior_memory (ipa_action, (unsigned char *) &action->type,
-			 size_in_ipa);
-
-  return ipa_action;
-}
-static char *
-m_tracepoint_action_send (char *buffer, const struct tracepoint_action *action)
-{
-  struct collect_memory_action *maction
-    = (struct collect_memory_action *) action;
-
-  COPY_FIELD_TO_BUF (buffer, maction, addr);
-  COPY_FIELD_TO_BUF (buffer, maction, len);
-  COPY_FIELD_TO_BUF (buffer, maction, basereg);
-
-  return buffer;
-}
-
-static const struct tracepoint_action_ops m_tracepoint_action_ops =
-{
-  m_tracepoint_action_download,
-  m_tracepoint_action_send,
-};
-
-static CORE_ADDR
-r_tracepoint_action_download (const struct tracepoint_action *action)
-{
-  int size_in_ipa = (sizeof (struct collect_registers_action)
-		     - offsetof (struct tracepoint_action, type));
-  CORE_ADDR ipa_action  = target_malloc (size_in_ipa);
-
-  write_inferior_memory (ipa_action, (unsigned char *) &action->type,
-			size_in_ipa);
-
-  return ipa_action;
-}
-
-static char *
-r_tracepoint_action_send (char *buffer, const struct tracepoint_action *action)
-{
-  return buffer;
-}
-
-static const struct tracepoint_action_ops r_tracepoint_action_ops =
-{
-  r_tracepoint_action_download,
-  r_tracepoint_action_send,
-};
-
 static CORE_ADDR download_agent_expr (struct agent_expr *expr);
-
-static CORE_ADDR
-x_tracepoint_action_download (const struct tracepoint_action *action)
-{
-  int size_in_ipa = (sizeof (struct eval_expr_action)
-		     - offsetof (struct tracepoint_action, type));
-  CORE_ADDR ipa_action = target_malloc (size_in_ipa);
-  CORE_ADDR expr;
-
-  write_inferior_memory (ipa_action, (unsigned char *) &action->type,
-			 size_in_ipa);
-  expr = download_agent_expr (((struct eval_expr_action *)action)->expr);
-  write_inferior_data_ptr (ipa_action + offsetof (struct eval_expr_action, expr)
-			   - offsetof (struct tracepoint_action, type),
-			   expr);
-
-  return ipa_action;
-}
 
 /* Copy agent expression AEXPR to buffer pointed by P.  If AEXPR is NULL,
    copy 0 to P.  Return updated header of buffer.  */
@@ -619,45 +516,6 @@ agent_expr_send (char *p, const struct agent_expr *aexpr)
     }
   return p;
 }
-
-static char *
-x_tracepoint_action_send ( char *buffer, const struct tracepoint_action *action)
-{
-  struct eval_expr_action *eaction = (struct eval_expr_action *) action;
-
-  return agent_expr_send (buffer, eaction->expr);
-}
-
-static const struct tracepoint_action_ops x_tracepoint_action_ops =
-{
-  x_tracepoint_action_download,
-  x_tracepoint_action_send,
-};
-
-static CORE_ADDR
-l_tracepoint_action_download (const struct tracepoint_action *action)
-{
-  int size_in_ipa = (sizeof (struct collect_static_trace_data_action)
-		     - offsetof (struct tracepoint_action, type));
-  CORE_ADDR ipa_action = target_malloc (size_in_ipa);
-
-  write_inferior_memory (ipa_action, (unsigned char *) &action->type,
-			 size_in_ipa);
-
-  return ipa_action;
-}
-
-static char *
-l_tracepoint_action_send (char *buffer, const struct tracepoint_action *action)
-{
-  return buffer;
-}
-
-static const struct tracepoint_action_ops l_tracepoint_action_ops =
-{
-  l_tracepoint_action_download,
-  l_tracepoint_action_send,
-};
 #endif
 
 /* This structure describes a piece of the source-level definition of
@@ -1944,7 +1802,6 @@ add_tracepoint_action (struct tracepoint *tpoint, char *packet)
 	    int is_neg;
 
 	    maction->base.type = *act;
-	    maction->base.ops = &m_tracepoint_action_ops;
 	    action = &maction->base;
 
 	    ++act;
@@ -1965,34 +1822,22 @@ add_tracepoint_action (struct tracepoint *tpoint, char *packet)
 	    break;
 	  }
 	case 'R':
-	  {
-	    struct collect_registers_action *raction =
-	      XNEW (struct collect_registers_action);
+	  action = XNEW (struct tracepoint_action);
+	  action->type = *act;
 
-	    raction->base.type = *act;
-	    raction->base.ops = &r_tracepoint_action_ops;
-	    action = &raction->base;
-
-	    trace_debug ("Want to collect registers");
+	  trace_debug ("Want to collect registers");
+	  ++act;
+	  /* skip past hex digits of mask for now */
+	  while (isxdigit(*act))
 	    ++act;
-	    /* skip past hex digits of mask for now */
-	    while (isxdigit(*act))
-	      ++act;
-	    break;
-	  }
+	  break;
 	case 'L':
-	  {
-	    struct collect_static_trace_data_action *raction =
-	      XNEW (struct collect_static_trace_data_action);
+	  action = XNEW (struct tracepoint_action);
+	  action->type = *act;
 
-	    raction->base.type = *act;
-	    raction->base.ops = &l_tracepoint_action_ops;
-	    action = &raction->base;
-
-	    trace_debug ("Want to collect static trace data");
-	    ++act;
-	    break;
-	  }
+	  trace_debug ("Want to collect static trace data");
+	  ++act;
+	  break;
 	case 'S':
 	  trace_debug ("Unexpected step action, ignoring");
 	  ++act;
@@ -2002,7 +1847,6 @@ add_tracepoint_action (struct tracepoint *tpoint, char *packet)
 	    struct eval_expr_action *xaction = XNEW (struct eval_expr_action);
 
 	    xaction->base.type = *act;
-	    xaction->base.ops = &x_tracepoint_action_ops;
 	    action = &xaction->base;
 
 	    trace_debug ("Want to evaluate expression");
@@ -6066,7 +5910,43 @@ download_tracepoint_1 (struct tracepoint *tpoint)
       for (i = 0; i < tpoint->numactions; i++)
 	{
 	  struct tracepoint_action *action = tpoint->actions[i];
-	  CORE_ADDR ipa_action = action->ops->download (action);
+	  CORE_ADDR ipa_action = 0;
+	  CORE_ADDR expr;
+	  int size_in_ipa = 0;
+
+	  switch (action->type)
+	    {
+	    case 'M':
+	      size_in_ipa = sizeof (struct collect_memory_action);
+	      ipa_action = target_malloc (size_in_ipa);
+	      write_inferior_memory (ipa_action, (unsigned char *) action,
+				     size_in_ipa);
+	      break;
+
+	    case 'R':
+	    case 'L':
+	      size_in_ipa = sizeof *action;
+	      ipa_action  = target_malloc (size_in_ipa);
+	      write_inferior_memory (ipa_action, (unsigned char *) action,
+				     size_in_ipa);
+	      break;
+
+	    case 'X':
+	      size_in_ipa = sizeof (struct eval_expr_action);
+	      ipa_action = target_malloc (size_in_ipa);
+	      write_inferior_memory (ipa_action, (unsigned char *) action,
+				     size_in_ipa);
+	      expr = download_agent_expr (((struct eval_expr_action *)action)->expr);
+	      write_inferior_data_ptr (ipa_action +
+				       offsetof (struct eval_expr_action, expr),
+				       expr);
+	      break;
+
+	    default:
+	      internal_error (__FILE__, __LINE__,
+			      "unknown tracepoint action '%c'", action->type);
+	      break;
+	    }
 
 	  if (ipa_action != 0)
 	    write_inferior_data_ptr
@@ -6115,8 +5995,37 @@ tracepoint_send_agent (struct tracepoint *tpoint)
     {
       struct tracepoint_action *action = tpoint->actions[i];
 
-      p[0] = action->type;
-      p = action->ops->send (&p[1], action);
+      *p++ = action->type;
+
+      switch (action->type)
+	{
+	  case 'M':
+	    {
+	      struct collect_memory_action *maction
+	        = (struct collect_memory_action *) action;
+
+	      COPY_FIELD_TO_BUF (p, maction, addr);
+	      COPY_FIELD_TO_BUF (p, maction, len);
+	      COPY_FIELD_TO_BUF (p, maction, basereg);
+	      break;
+	    }
+
+	  case 'R':
+	  case 'L':
+	    break;
+
+	  case 'X':
+	    {
+	      struct eval_expr_action *eaction = (struct eval_expr_action *) action;
+	      p = agent_expr_send (p, eaction->expr);
+	      break;
+	    }
+
+	  default:
+	    internal_error (__FILE__, __LINE__,
+			    "unknown tracepoint action '%c'", action->type);
+	    break;
+	}
     }
 
   get_jump_space_head ();

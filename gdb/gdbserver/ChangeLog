@@ -1,3 +1,21 @@
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
+	* tracepoint.c (struct tracepoint_action_ops): Removed.
+	(struct tracepoint_action): Removed ops field.
+	(struct collect_registers_action): Removed.
+	(struct collect_static_trace_data_action): Removed.
+	(m_tracepoint_action_download): Removed.
+	(m_tracepoint_action_send): Removed.
+	(r_tracepoint_action_download): Removed.
+	(r_tracepoint_action_send): Removed.
+	(x_tracepoint_action_download): Removed.
+	(x_tracepoint_action_send): Removed.
+	(l_tracepoint_action_download): Removed.
+	(l_tracepoint_action_send): Removed.
+	(add_tracepoint_action): Remove ops setting.
+	(download_tracepoint_1): Download actions inline instead of using ops.
+	(tracepoint_send_agent): Send actions inline instead of using ops.
+
 2016-02-02  Walfred Tedeschi  <walfred.tedeschi@intel.com>
 
 	* configure.srv (x86_64-*-linux*): Add amd64-linux-siginfo.o
