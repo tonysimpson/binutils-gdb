@@ -239,6 +239,17 @@ typedef void (gdbarch_write_pc_ftype) (struct regcache *regcache, CORE_ADDR val)
 extern void gdbarch_write_pc (struct gdbarch *gdbarch, struct regcache *regcache, CORE_ADDR val);
 extern void set_gdbarch_write_pc (struct gdbarch *gdbarch, gdbarch_write_pc_ftype *write_pc);
 
+/* Supply given PC into an empty regcache.  Used for tracepoints where
+   no registers have been collected, but there's only one location,
+   allowing us to guess the PC value.  Only used on targets where PC
+   is a pseudo-register - otherwise PC is supplied directly. */
+
+extern int gdbarch_supply_pseudo_pc_p (struct gdbarch *gdbarch);
+
+typedef void (gdbarch_supply_pseudo_pc_ftype) (struct regcache *regcache, CORE_ADDR val);
+extern void gdbarch_supply_pseudo_pc (struct gdbarch *gdbarch, struct regcache *regcache, CORE_ADDR val);
+extern void set_gdbarch_supply_pseudo_pc (struct gdbarch *gdbarch, gdbarch_supply_pseudo_pc_ftype *supply_pseudo_pc);
+
 /* Function for getting target's idea of a frame pointer.  FIXME: GDB's
    whole scheme for dealing with "frames" and "frame pointers" needs a
    serious shakedown. */

@@ -396,16 +396,18 @@ tracefile_fetch_registers (struct regcache *regcache, int regno)
      as the address of the tracepoint.  */
   pc_regno = gdbarch_pc_regnum (gdbarch);
 
-  /* XXX This guessing code below only works if the PC register isn't
-     a pseudo-register.  The value of a pseudo-register isn't stored
-     in the (non-readonly) regcache -- instead it's recomputed
-     (probably from some other cached raw register) whenever the
-     register is read.  This guesswork should probably move to some
-     higher layer.  */
-  if (pc_regno < 0 || pc_regno >= gdbarch_num_regs (gdbarch))
+  if (pc_regno < 0)
     return;
 
-  if (regno == -1 || regno == pc_regno)
+  /* We try to guess PC if:
+
+     1) We want all registers, or
+     2) PC is a real register, and we want exactly it, or
+     3) PC is a pseudo register (we don't know which real register it
+	corresponds to, so let's try to play safe).  */
+
+  if (regno == -1 || regno == pc_regno ||
+      pc_regno >= gdbarch_num_regs (gdbarch))
     {
       struct tracepoint *tp = get_tracepoint (get_tracepoint_number ());
       gdb_byte *regs;
@@ -429,11 +431,23 @@ tracefile_fetch_registers (struct regcache *regcache, int regno)
 	      return;
 	    }
 
-	  regs = (gdb_byte *) alloca (register_size (gdbarch, pc_regno));
-	  store_unsigned_integer (regs, register_size (gdbarch, pc_regno),
-				  gdbarch_byte_order (gdbarch),
-				  tp->base.loc->address);
-	  regcache_raw_supply (regcache, pc_regno, regs);
+	  if (pc_regno >= gdbarch_num_regs (gdbarch))
+	    {
+	      /* PC is a pseudo, let gdbarch deal with that.  If it doesn't
+		 know how, just bail.  */
+	      if (gdbarch_supply_pseudo_pc_p (gdbarch))
+		gdbarch_supply_pseudo_pc (gdbarch, regcache,
+						     tp->base.loc->address);
+	    }
+	  else
+	    {
+	      /* PC is a real register.  */
+	      regs = (gdb_byte *) alloca (register_size (gdbarch, pc_regno));
+	      store_unsigned_integer (regs, register_size (gdbarch, pc_regno),
+				      gdbarch_byte_order (gdbarch),
+				      tp->base.loc->address);
+	      regcache_raw_supply (regcache, pc_regno, regs);
+	    }
 	}
     }
 }

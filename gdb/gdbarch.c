@@ -181,6 +181,7 @@ struct gdbarch
   int char_signed;
   gdbarch_read_pc_ftype *read_pc;
   gdbarch_write_pc_ftype *write_pc;
+  gdbarch_supply_pseudo_pc_ftype *supply_pseudo_pc;
   gdbarch_virtual_frame_pointer_ftype *virtual_frame_pointer;
   gdbarch_pseudo_register_read_ftype *pseudo_register_read;
   gdbarch_pseudo_register_read_value_ftype *pseudo_register_read_value;
@@ -523,6 +524,7 @@ verify_gdbarch (struct gdbarch *gdbarch)
     gdbarch->char_signed = 1;
   /* Skip verify of read_pc, has predicate.  */
   /* Skip verify of write_pc, has predicate.  */
+  /* Skip verify of supply_pseudo_pc, has predicate.  */
   /* Skip verify of virtual_frame_pointer, invalid_p == 0 */
   /* Skip verify of pseudo_register_read, has predicate.  */
   /* Skip verify of pseudo_register_read_value, has predicate.  */
@@ -1366,6 +1368,12 @@ gdbarch_dump (struct gdbarch *gdbarch, struct ui_file *file)
                       "gdbarch_dump: static_transform_name = <%s>\n",
                       host_address_to_string (gdbarch->static_transform_name));
   fprintf_unfiltered (file,
+                      "gdbarch_dump: gdbarch_supply_pseudo_pc_p() = %d\n",
+                      gdbarch_supply_pseudo_pc_p (gdbarch));
+  fprintf_unfiltered (file,
+                      "gdbarch_dump: supply_pseudo_pc = <%s>\n",
+                      host_address_to_string (gdbarch->supply_pseudo_pc));
+  fprintf_unfiltered (file,
                       "gdbarch_dump: syscalls_info = %s\n",
                       host_address_to_string (gdbarch->syscalls_info));
   fprintf_unfiltered (file,
@@ -1819,6 +1827,30 @@ set_gdbarch_write_pc (struct gdbarch *gdbarch,
                       gdbarch_write_pc_ftype write_pc)
 {
   gdbarch->write_pc = write_pc;
+}
+
+int
+gdbarch_supply_pseudo_pc_p (struct gdbarch *gdbarch)
+{
+  gdb_assert (gdbarch != NULL);
+  return gdbarch->supply_pseudo_pc != NULL;
+}
+
+void
+gdbarch_supply_pseudo_pc (struct gdbarch *gdbarch, struct regcache *regcache, CORE_ADDR val)
+{
+  gdb_assert (gdbarch != NULL);
+  gdb_assert (gdbarch->supply_pseudo_pc != NULL);
+  if (gdbarch_debug >= 2)
+    fprintf_unfiltered (gdb_stdlog, "gdbarch_supply_pseudo_pc called\n");
+  gdbarch->supply_pseudo_pc (regcache, val);
+}
+
+void
+set_gdbarch_supply_pseudo_pc (struct gdbarch *gdbarch,
+                              gdbarch_supply_pseudo_pc_ftype supply_pseudo_pc)
+{
+  gdbarch->supply_pseudo_pc = supply_pseudo_pc;
 }
 
 void

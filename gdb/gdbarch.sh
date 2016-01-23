@@ -417,6 +417,11 @@ v:int:char_signed:::1:-1:1
 #
 F:CORE_ADDR:read_pc:struct regcache *regcache:regcache
 F:void:write_pc:struct regcache *regcache, CORE_ADDR val:regcache, val
+# Supply given PC into an empty regcache.  Used for tracepoints where
+# no registers have been collected, but there's only one location,
+# allowing us to guess the PC value.  Only used on targets where PC
+# is a pseudo-register - otherwise PC is supplied directly.
+F:void:supply_pseudo_pc:struct regcache *regcache, CORE_ADDR val:regcache, val
 # Function for getting target's idea of a frame pointer.  FIXME: GDB's
 # whole scheme for dealing with "frames" and "frame pointers" needs a
 # serious shakedown.

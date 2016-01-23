@@ -1,3 +1,11 @@
+2016-02-07  Marcin Kościelnicki  <koriakin@0x04.net>
+
+	* gdbarch.c: Regenerate.
+	* gdbarch.h: Regenerate.
+	* gdbarch.sh: Add supply_pseudo_pc hook.
+	* tracefile.c (tracefile_fetch_registers): When PC is a pseudo,
+	ask gdbarch to handle guessed PC via the new hook.
+
 2016-02-04  Yao Qi  <yao.qi@linaro.org>
 
 	* remote.c (remote_wait_as): Set rs->waiting_for_stop_reply to
