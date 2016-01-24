@@ -27,7 +27,7 @@ if { [gdb_compile "$srcdir/$subdir/$srcfile" $binfile \
 }
 
 # Typically we need a little extra time for this test.
-set timeout 180
+set timeout 600
 
 set ws "\[\r\n\t \]+"
 set cr "\[\r\n\]+"
