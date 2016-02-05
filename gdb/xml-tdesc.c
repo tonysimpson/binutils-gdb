@@ -630,3 +630,29 @@ target_read_description_xml (struct target_ops *ops)
 
   return tdesc;
 }
+
+char *
+target_fetch_description_xml (struct target_ops *ops)
+{
+  struct target_desc *tdesc;
+  char *tdesc_str;
+  char *expanded_text;
+  struct cleanup *back_to;
+
+  tdesc_str = fetch_available_features_from_target ("target.xml", ops);
+  if (tdesc_str == NULL)
+    return NULL;
+
+  back_to = make_cleanup (xfree, tdesc_str);
+  expanded_text = xml_process_xincludes (_("target description"),
+					 tdesc_str,
+					 fetch_available_features_from_target, ops, 0);
+  if (expanded_text == NULL)
+    {
+      warning (_("Could not load XML target description; ignoring"));
+      return NULL;
+    }
+  do_cleanups (back_to);
+
+  return expanded_text;
+}
