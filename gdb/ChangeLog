@@ -1,5 +1,13 @@
 2016-02-06  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* amd64-tdep.c (amd64_ax_pseudo_register_collect): New function.
+	(amd64_init_abi): Fill ax_pseudo_register_collect hook.
+	* i386-tdep.c (i386_ax_pseudo_register_collect): New function.
+	(i386_gdbarch_init): Fill ax_pseudo_register_collect hook.
+	* i386-tdep.h: Add i386_ax_pseudo_register_collect prototype.
+
+2016-02-06  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* tracefile-tfile.c (tfile_fetch_registers): Fix off-by-one in bounds
 	check.
 
