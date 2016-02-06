@@ -29,6 +29,7 @@
 #include "completer.h"
 #include "filenames.h"
 #include "xml-tdesc.h"
+#include "target-descriptions.h"
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
@@ -390,7 +391,11 @@ static off_t trace_frames_offset;
 static off_t cur_offset;
 static int cur_data_size;
 int trace_regblock_size;
+static char *trace_tdesc;
+static int trace_tdesc_alloc;
+static int trace_tdesc_len;
 
+static void tfile_append_tdesc_line (const char *line);
 static void tfile_interp_line (char *line,
 			       struct uploaded_tp **utpp,
 			       struct uploaded_tsv **utsvp);
@@ -457,6 +462,12 @@ tfile_open (const char *arg, int from_tty)
   trace_filename = xstrdup (filename);
   trace_fd = scratch_chan;
 
+  /* Make sure this is clear.  */
+  xfree (trace_tdesc);
+  trace_tdesc = NULL;
+  trace_tdesc_alloc = 0;
+  trace_tdesc_len = 0;
+
   bytes = 0;
   /* Read the file header and test for validity.  */
   tfile_read ((gdb_byte *) &header, TRACE_HEADER_SIZE);
@@ -504,6 +515,9 @@ tfile_open (const char *arg, int from_tty)
 	  if (i >= 1000)
 	    error (_("Excessively long lines in trace file"));
 	}
+
+      /* We should have fetched tdesc by now.  */
+      target_find_description ();
 
       /* Record the starting offset of the binary trace data.  */
       trace_frames_offset = bytes;
@@ -568,6 +582,11 @@ tfile_interp_line (char *line, struct uploaded_tp **utpp,
       p += strlen ("tsv ");
       parse_tsv_definition (p, utsvp);
     }
+  else if (startswith (p, "tdesc "))
+    {
+      p += strlen ("tdesc ");
+      tfile_append_tdesc_line (p);
+    }
   else
     warning (_("Ignoring trace file definition \"%s\""), line);
 }
@@ -590,6 +609,10 @@ tfile_close (struct target_ops *self)
   trace_fd = -1;
   xfree (trace_filename);
   trace_filename = NULL;
+  xfree (trace_tdesc);
+  trace_tdesc = NULL;
+  trace_tdesc_alloc = 0;
+  trace_tdesc_len = 0;
 
   trace_reset_local_state ();
 }
@@ -876,12 +899,42 @@ tfile_fetch_registers (struct target_ops *ops,
 }
 
 static enum target_xfer_status
+tfile_xfer_partial_features (struct target_ops *ops, const char *annex,
+			     gdb_byte *readbuf, const gdb_byte *writebuf,
+			     ULONGEST offset, ULONGEST len,
+			     ULONGEST *xfered_len)
+{
+  if (strcmp (annex, "target.xml"))
+    return TARGET_XFER_E_IO;
+
+  if (readbuf == NULL)
+    error (_("tfile_xfer_partial: tdesc is read-only"));
+
+  if (!trace_tdesc)
+    return TARGET_XFER_E_IO;
+
+  if (offset >= trace_tdesc_len)
+    return TARGET_XFER_EOF;
+
+  if (len > trace_tdesc_len - offset)
+    len = trace_tdesc_len - offset;
+
+  memcpy (readbuf, trace_tdesc + offset, len);
+  *xfered_len = len;
+
+  return TARGET_XFER_OK;
+}
+
+static enum target_xfer_status
 tfile_xfer_partial (struct target_ops *ops, enum target_object object,
 		    const char *annex, gdb_byte *readbuf,
 		    const gdb_byte *writebuf, ULONGEST offset, ULONGEST len,
 		    ULONGEST *xfered_len)
 {
-  /* We're only doing regular memory for now.  */
+  /* We're only doing regular memory and tdesc for now.  */
+  if (object == TARGET_OBJECT_AVAILABLE_FEATURES)
+    return tfile_xfer_partial_features (ops, annex, readbuf, writebuf,
+					offset, len, xfered_len);
   if (object != TARGET_OBJECT_MEMORY)
     return TARGET_XFER_E_IO;
 
@@ -1059,6 +1112,31 @@ tfile_traceframe_info (struct target_ops *self)
 
   traceframe_walk_blocks (build_traceframe_info, 0, info);
   return info;
+}
+
+/* Handles tdesc lines from tfile by appending the payload to
+   a global trace_tdesc variable.  */
+
+static void
+tfile_append_tdesc_line (const char *line)
+{
+  int llen = strlen (line);
+
+  /* 2 chars for "\n\0".  */
+  while (trace_tdesc_len + llen + 2 > trace_tdesc_alloc)
+    {
+      /* Grow the buffer.  */
+      if (!trace_tdesc_alloc)
+	trace_tdesc_alloc = 4096;
+      else
+	trace_tdesc_alloc *= 2;
+      trace_tdesc = xrealloc(trace_tdesc, trace_tdesc_alloc);
+    }
+
+  strcpy (trace_tdesc + trace_tdesc_len, line);
+  trace_tdesc_len += llen;
+  strcpy (trace_tdesc + trace_tdesc_len, "\n");
+  trace_tdesc_len++;
 }
 
 static void
