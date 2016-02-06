@@ -1,5 +1,10 @@
 2016-02-06  Marcin Kościelnicki  <koriakin@0x04.net>
 
+	* tracefile-tfile.c (tfile_fetch_registers): Use g packet order
+	instead of gdb order.
+
+2016-02-06  Marcin Kościelnicki  <koriakin@0x04.net>
+
 	* tracefile-tfile.c (trace_tdesc): New static variable.
 	(trace_tdesc_alloc): New static variable.
 	(trace_tdesc_len): New static variable.

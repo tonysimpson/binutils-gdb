@@ -30,6 +30,7 @@
 #include "filenames.h"
 #include "xml-tdesc.h"
 #include "target-descriptions.h"
+#include "remote.h"
 
 #ifndef O_LARGEFILE
 #define O_LARGEFILE 0
@@ -857,7 +858,7 @@ tfile_fetch_registers (struct target_ops *ops,
 		       struct regcache *regcache, int regno)
 {
   struct gdbarch *gdbarch = get_regcache_arch (regcache);
-  int offset, regn, regsize;
+  int offset, regn, regsize, dummy;
 
   /* An uninitialized reg size says we're not going to be
      successful at getting register blocks.  */
@@ -870,11 +871,12 @@ tfile_fetch_registers (struct target_ops *ops,
 
       tfile_read (regs, trace_regblock_size);
 
-      /* Assume the block is laid out in GDB register number order,
-	 each register with the size that it has in GDB.  */
-      offset = 0;
       for (regn = 0; regn < gdbarch_num_regs (gdbarch); regn++)
 	{
+	  if (!remote_register_number_and_offset (get_regcache_arch (regcache),
+						  regn, &dummy, &offset))
+	    continue;
+
 	  regsize = register_size (gdbarch, regn);
 	  /* Make sure we stay within block bounds.  */
 	  if (offset + regsize >= trace_regblock_size)
@@ -891,7 +893,6 @@ tfile_fetch_registers (struct target_ops *ops,
 		  regcache_raw_supply (regcache, regn, regs + offset);
 		}
 	    }
-	  offset += regsize;
 	}
     }
   else
