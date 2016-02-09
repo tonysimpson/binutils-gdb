@@ -640,7 +640,7 @@ static void
 finalize_symtab (struct gdb_symtab *stab, struct objfile *objfile)
 {
   struct compunit_symtab *cust;
-  struct gdb_block *gdb_block_iter, *gdb_block_iter_tmp;
+  struct gdb_block *gdb_block_iter, *gdb_block_iter_next;
   struct block *block_iter;
   int actual_nblocks, i;
   size_t blockvector_size;
@@ -714,7 +714,6 @@ finalize_symtab (struct gdb_symtab *stab, struct objfile *objfile)
 					strlen (gdb_block_iter->name));
 
       BLOCK_FUNCTION (new_block) = block_name;
-
       BLOCKVECTOR_BLOCK (bv, i) = new_block;
       if (begin > BLOCK_START (new_block))
         begin = BLOCK_START (new_block);
@@ -733,8 +732,7 @@ finalize_symtab (struct gdb_symtab *stab, struct objfile *objfile)
       new_block = (i == GLOBAL_BLOCK
 		   ? allocate_global_block (&objfile->objfile_obstack)
 		   : allocate_block (&objfile->objfile_obstack));
-      BLOCK_DICT (new_block) = dict_create_linear (&objfile->objfile_obstack,
-                                                   NULL);
+      BLOCK_DICT (new_block) = dict_create_linear_expandable();
       BLOCK_SUPERBLOCK (new_block) = block_iter;
       block_iter = new_block;
 
@@ -766,17 +764,23 @@ finalize_symtab (struct gdb_symtab *stab, struct objfile *objfile)
 	  BLOCK_SUPERBLOCK (gdb_block_iter->real_block) =
 	    BLOCKVECTOR_BLOCK (bv, STATIC_BLOCK);
 	}
+        /* Now add any function names to the GLOBAL_BLOCK dict 
+	   otherwise they wont be found for setting breakpoints.  */
+      dict_add_symbol(BLOCK_DICT(BLOCKVECTOR_BLOCK (bv, GLOBAL_BLOCK)),  
+                      BLOCK_FUNCTION (gdb_block_iter->real_block));
     }
+
+
 
   /* Free memory.  */
   gdb_block_iter = stab->blocks;
 
-  for (gdb_block_iter = stab->blocks, gdb_block_iter_tmp = gdb_block_iter->next;
-       gdb_block_iter;
-       gdb_block_iter = gdb_block_iter_tmp)
+  while(gdb_block_iter)
     {
+      gdb_block_iter_next = gdb_block_iter->next;
       xfree ((void *) gdb_block_iter->name);
       xfree (gdb_block_iter);
+      gdb_block_iter = gdb_block_iter_next;
     }
   xfree (stab->linetable);
   xfree ((char *) stab->file_name);
@@ -810,6 +814,7 @@ jit_object_close_impl (struct gdb_symbol_callbacks *cb,
     }
   add_objfile_entry (objfile, *priv_data);
   xfree (obj);
+  breakpoint_re_set();
 }
 
 /* Try to read CODE_ENTRY using the loaded jit reader (if any).

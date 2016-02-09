@@ -56,6 +56,7 @@
 #include "cli/cli-utils.h"
 #include "infcall.h"
 #include "thread-fsm.h"
+#include "jit.h"
 
 /* Local functions: */
 
@@ -469,6 +470,10 @@ post_create_inferior (struct target_ops *target, int from_tty)
   breakpoint_re_set ();
 
   observer_notify_inferior_created (target, from_tty);
+
+  /* Make sure we set up the jit reader.  */
+  jit_inferior_created_hook ();
+
 }
 
 /* Kill the inferior if already running.  This function is designed
