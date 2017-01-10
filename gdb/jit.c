@@ -1104,24 +1104,12 @@ struct jit_unwind_private
 /* Sets the value of a particular register in this frame.  */
 
 static void
-jit_unwind_reg_set_impl (struct gdb_unwind_callbacks *cb, int dwarf_regnum,
+jit_unwind_reg_set_impl (struct gdb_unwind_callbacks *cb, int gdb_reg,
                          struct gdb_reg_value *value)
 {
   struct jit_unwind_private *priv;
-  int gdb_reg;
 
   priv = (struct jit_unwind_private *) cb->priv_data;
-
-  gdb_reg = gdbarch_dwarf2_reg_to_regnum (get_frame_arch (priv->this_frame),
-                                          dwarf_regnum);
-  if (gdb_reg == -1)
-    {
-      if (jit_debug)
-        fprintf_unfiltered (gdb_stdlog,
-                            _("Could not recognize DWARF regnum %d"),
-                            dwarf_regnum);
-      return;
-    }
 
   gdb_assert (priv->registers);
   priv->registers[gdb_reg] = value;
@@ -1136,17 +1124,16 @@ reg_value_free_impl (struct gdb_reg_value *value)
 /* Get the value of register REGNUM in the previous frame.  */
 
 static struct gdb_reg_value *
-jit_unwind_reg_get_impl (struct gdb_unwind_callbacks *cb, int regnum)
+jit_unwind_reg_get_impl (struct gdb_unwind_callbacks *cb, int gdb_reg)
 {
   struct jit_unwind_private *priv;
   struct gdb_reg_value *value;
-  int gdb_reg, size;
+  int size;
   struct gdbarch *frame_arch;
 
   priv = (struct jit_unwind_private *) cb->priv_data;
   frame_arch = get_frame_arch (priv->this_frame);
 
-  gdb_reg = gdbarch_dwarf2_reg_to_regnum (frame_arch, regnum);
   size = register_size (frame_arch, gdb_reg);
   value = ((struct gdb_reg_value *)
 	   xmalloc (sizeof (struct gdb_reg_value) + size - 1));
